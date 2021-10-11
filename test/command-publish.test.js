@@ -5,14 +5,12 @@ const t = require('tap')
 const { join } = require('path')
 const proxyquire = require('proxyquire')
 const h = require('./helper')
-
+// require('require-logger')
 const cmd = h.buildProxyCommand('../lib/commands/publish', {
   git: { tag: { history: 5 } },
   github: { }, // default OK
   npm: { } // default OK
 })
-
-const { test } = t
 
 function buildOptions () {
   // TODO optimize using args instead
@@ -31,13 +29,13 @@ function buildOptions () {
   return Object.assign({}, options)
 }
 
-test('mandatory options', t => {
+t.test('mandatory options', t => {
   t.plan(2)
   t.rejects(() => cmd({}), new Error(" should have required property 'major',  should have required property 'path',  should have required property 'remote',  should have required property 'branch',  should have required property 'ghToken',  should have required property 'verbose',  should have required property 'semver'"))
   t.rejects(() => cmd(buildOptions()), new Error('.tag should be string, .ghToken should NOT be shorter than 40 characters, .semver should be string, .semver should be equal to one of the allowed values'))
 })
 
-test('try to publish a repo not sync', t => {
+t.test('try to publish a repo not sync', t => {
   t.plan(1)
   const cmd = h.buildProxyCommand('../lib/commands/publish', {
     git: { status: { dirty: true } }
@@ -49,7 +47,7 @@ test('try to publish a repo not sync', t => {
   t.rejects(() => cmd(opts), new Error('The git repo must be clean (committed and pushed) before releasing!'))
 })
 
-test('try to publish 0 new commits', t => {
+t.test('try to publish 0 new commits', t => {
   t.plan(1)
   const cmd = h.buildProxyCommand('../lib/commands/publish', {
     external: { './draft': h.buildProxyCommand('../lib/commands/draft', { git: { tag: { history: 0 } } }) }
@@ -61,7 +59,7 @@ test('try to publish 0 new commits', t => {
   t.rejects(() => cmd(opts), new Error('There are ZERO commit to release!'))
 })
 
-test('try to publish with a wrong token', t => {
+t.test('try to publish with a wrong token', t => {
   t.plan(1)
   const cmd = h.buildProxyCommand('../lib/commands/publish', {
     external: { './draft': h.buildProxyCommand('../lib/commands/draft', { git: { tag: { history: 1 } } }) }
@@ -73,7 +71,7 @@ test('try to publish with a wrong token', t => {
   t.rejects(() => cmd(opts), new Error('.ghToken should NOT be shorter than 40 characters'))
 })
 
-test('npm ping failed', t => {
+t.test('npm ping failed', t => {
   t.plan(1)
   const cmd = h.buildProxyCommand('../lib/commands/publish', {
     npm: { ping: { code: 1 } },
@@ -86,7 +84,7 @@ test('npm ping failed', t => {
   t.rejects(() => cmd(opts), new Error('npm ping returned code 1 and signal undefined'))
 })
 
-test('publish a module never released', async t => {
+t.test('publish a module never released', async t => {
   t.plan(3)
   const cmd = h.buildProxyCommand('../lib/commands/publish', {
     npm: {
@@ -121,7 +119,7 @@ test('publish a module never released', async t => {
   })
 })
 
-test('publish a module never released and fail the pull', async t => {
+t.test('publish a module never released and fail the pull', async t => {
   t.plan(1)
   const cmd = h.buildProxyCommand('../lib/commands/publish', {
     git: { pull: { throwError: true } },
@@ -144,7 +142,7 @@ test('publish a module never released and fail the pull', async t => {
   })
 })
 
-test('try to publish a module version already released', t => {
+t.test('try to publish a module version already released', t => {
   t.plan(1)
   const cmd = h.buildProxyCommand('../lib/commands/publish', {
     npm: {
@@ -162,7 +160,7 @@ test('try to publish a module version already released', t => {
   t.rejects(() => cmd(opts), new Error('The module fake-project@11.15.0 is already published in the registry my-registry'))
 })
 
-test('fails to push the release', t => {
+t.test('fails to push the release', t => {
   t.plan(1)
 
   const opts = buildOptions()
@@ -180,7 +178,7 @@ test('fails to push the release', t => {
   t.rejects(() => cmd(opts), new Error("Something went wrong pushing the package.json to git.\nThe 'npm publish' has been done! Check your 'git status' and if necessary run 'npm unpublish fake-project@11.14.43'.\nConsider creating a release on GitHub by yourself with this message:\n📚 PR:\n- this is a standard comment (#123)\n"))
 })
 
-test('fails to build the release', t => {
+t.test('fails to build the release', t => {
   t.plan(1)
 
   const opts = buildOptions()
@@ -197,7 +195,7 @@ test('fails to build the release', t => {
   t.rejects(() => cmd(opts), new Error("Something went wrong creating the release on GitHub.\nThe 'npm publish' and 'git push' has been done!\nConsider creating a release on GitHub by yourself with this message:\n📚 PR:\n- this is a standard comment (#123)\n"))
 })
 
-test('try to publish a module major', t => {
+t.test('try to publish a module major', t => {
   t.plan(1)
   const cmd = h.buildProxyCommand('../lib/commands/publish', {
     external: { './draft': h.buildProxyCommand('../lib/commands/draft', { git: { tag: { history: 1 } } }) }
@@ -209,7 +207,7 @@ test('try to publish a module major', t => {
   t.rejects(() => cmd(opts), new Error('You can not release a major version without --major flag'))
 })
 
-test('publish a module major', async t => {
+t.test('publish a module major', async t => {
   t.plan(2)
 
   const opts = buildOptions()
@@ -246,7 +244,7 @@ test('publish a module major', async t => {
   })
 })
 
-test('publish a module minor with no-verify', async t => {
+t.test('publish a module minor with no-verify', async t => {
   t.plan(1)
 
   const opts = buildOptions()
@@ -277,7 +275,7 @@ test('publish a module minor with no-verify', async t => {
   })
 })
 
-test('publish npm error', async t => {
+t.test('publish npm error', async t => {
   t.plan(2)
 
   const opts = buildOptions()
@@ -309,7 +307,7 @@ STDERR: npm OTP required`)
   }
 })
 
-test('publish a module minor editing the release message', async t => {
+t.test('publish a module minor editing the release message', async t => {
   t.plan(4)
 
   const opts = buildOptions()
@@ -366,7 +364,7 @@ test('publish a module minor editing the release message', async t => {
   })
 })
 
-test('editor error', t => {
+t('editor error', t => {
   t.plan(2)
 
   const opts = buildOptions()
@@ -411,7 +409,7 @@ test('editor error', t => {
   t.rejects(() => cmd(opts), new Error('Something went wrong creating the release on GitHub.'))
 })
 
-test('publish a module from a branch that is not master', async t => {
+t.test('publish a module from a branch that is not master', async t => {
   t.plan(2)
 
   const opts = buildOptions()

@@ -1,6 +1,6 @@
 'use strict'
 
-const { spawn } = require('child_process')
+const childProcess = require('child_process')
 const fs = require('fs')
 const path = require('path')
 const proxyquire = require('proxyquire')
@@ -18,10 +18,18 @@ function readFileHelp (file) {
 
 function execute (command, params = []) {
   const node = process.execPath
-  return spawn(node, ['lib/cli', command, ...params])
+  return childProcess.spawn(node, ['lib/cli', command, ...params])
 }
 
 function buildProxyCommand (commandPath, opts = {}) {
+  childProcess.spawn = factoryNpm(opts.npm).spawn
+
+  const ptnpm = proxyquire('../lib/publishToNpmWithOTPInquiry', {
+    './npm': proxyquire('../lib/npm', {
+      child_process: factoryNpm(opts.npm) // for some reason this does not work as expected-child process is still unmocked-that's why the line 25 is needed
+    })
+  })
+  console.log('~ ptnpm', commandPath)
   return proxyquire(commandPath, {
     '../git-directory': proxyquire('../lib/git-directory', {
       'simple-git': factorySimpleGit(opts.git)
@@ -29,9 +37,7 @@ function buildProxyCommand (commandPath, opts = {}) {
     '../github': proxyquire('../lib/github', {
       '@octokit/rest': factoryOctokit(opts.github)
     }),
-    '../npm': proxyquire('../lib/npm', {
-      child_process: factoryNpm(opts.npm)
-    }),
+    '../publishToNpmWithOTPInquiry': ptnpm,
     ...opts.external
   })
 }
